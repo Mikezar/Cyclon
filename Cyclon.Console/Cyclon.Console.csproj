@@ -13,7 +13,7 @@
 	<Title>Cyclon</Title>
 	<PackageId>Cyclon</PackageId>
 	<Authors>Mikhail Serdiuk</Authors>
-	<Description>A small .NET tool for encrypting and decrypting files</Description>
+	<Description>A small .NET tool for encrypting and decrypting files.</Description>
   </PropertyGroup>
 	
   <ItemGroup>
