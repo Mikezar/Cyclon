@@ -1,5 +1,4 @@
 ﻿using Cyclon.Console;
-using Cyclon.Console.Handlers;
 using Cyclon.Core;
 using Microsoft.Extensions.DependencyInjection;
 using System.CommandLine;
@@ -17,17 +16,11 @@ CyclonProcess.Start(RegisterDependencies, Run, cancellationTokenSource.Token);
 IServiceProvider RegisterDependencies(CancellationToken cancellationToken)
 {
     var serviceCollection = new ServiceCollection();
+    var commandBuilder = new CommandBuilder(serviceCollection);
+    commandBuilder.RegisterCommands(cancellationToken);
 
-    serviceCollection.AddSingleton((_) =>
-    {
-        var commandBuilder = new CommandBuilder();
-        commandBuilder.RegisterCommands(cancellationToken);
-        return commandBuilder;
-    });
-
+    serviceCollection.AddSingleton(commandBuilder);
     serviceCollection.AddSingleton<IKeyIVGenerator, Pbkdf2KeyIVGenerator>();
-    serviceCollection.AddSingleton<EncryptFileCommandHandler>();
-    serviceCollection.AddSingleton<DecryptFileCommandHandler>();
 
     var serviceProvider = serviceCollection.BuildServiceProvider();
 

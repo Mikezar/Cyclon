@@ -1,10 +1,11 @@
-﻿using Cyclon.Core;
+﻿using Cyclon.Console.Resolvers;
+using Cyclon.Core;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Cyclon.Console.Handlers;
 
-internal sealed class DecryptFileCommandHandler
+internal sealed class DecryptFileCommandHandler : IHandler<DecryptCommandContext>
 {
     private readonly IKeyIVGenerator _keyIVGenerator;
 
@@ -13,15 +14,15 @@ internal sealed class DecryptFileCommandHandler
         _keyIVGenerator = keyIVGenerator;
     }
 
-    public async Task Handle(string filePath, string passphrase, CancellationToken cancellationToken)
+    public async Task Handle(DecryptCommandContext decryptCommandContext, CancellationToken cancellationToken)
     {
         try
         {
-            var secretBytes = Encoding.Unicode.GetBytes(passphrase);
+            var secretBytes = Encoding.Unicode.GetBytes(decryptCommandContext.Passphrase);
             var (key, iv) = _keyIVGenerator.Generate(secretBytes);
             var options = new EncryptionOptions(key, iv);
-            var filePaths = FileUtilities.GetAllFilePaths(filePath);
-            var directory = Directory.CreateDirectory(Path.Combine(filePath, "cyclondec"));
+            var filePaths = FileUtilities.GetAllFilePaths(decryptCommandContext.FilePath);
+            var directory = Directory.CreateDirectory(Path.Combine(decryptCommandContext.FilePath, "cyclondec"));
 
             foreach (var path in filePaths)
             {
