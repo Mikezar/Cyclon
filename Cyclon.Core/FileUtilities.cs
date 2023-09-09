@@ -15,20 +15,8 @@ public static class FileUtilities
         return decryptedFielName;
     }
 
-    public static IList<string> GetAllFilePaths(string filePath)
+    public static bool IsAFile(string path)
     {
-        var filePaths = new List<string>();
-
-        if (Directory.Exists(filePath))
-        {
-            var paths = Directory.GetFiles(filePath);
-            filePaths.AddRange(paths);
-        }
-        else
-        {
-            filePaths.Add(filePath);
-        }
-
-        return filePaths;
+        return !Directory.Exists(path);
     }
 }

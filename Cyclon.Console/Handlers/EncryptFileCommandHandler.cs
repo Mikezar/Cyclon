@@ -21,17 +21,38 @@ internal sealed class EncryptFileCommandHandler : IHandler<EncryptCommandContext
             var secretBytes = Encoding.Unicode.GetBytes(encryptCommandContext.Passphrase);
             var (key, iv) = _keyIVGenerator.Generate(secretBytes);
             var options = new EncryptionOptions(key, iv);
-            var filePaths = FileUtilities.GetAllFilePaths(encryptCommandContext.FilePath);
-            var directory = Directory.CreateDirectory(Path.Combine(encryptCommandContext.FilePath, "cyclonenc"));
 
-            foreach (var path in filePaths)
+            if (FileUtilities.IsAFile(encryptCommandContext.FilePath))
             {
-                await EncryptFile(path, directory, options, cancellationToken);
+                var rootDirectory = CreateRootDirectory(encryptCommandContext.FilePath);
+                await EncryptFile(encryptCommandContext.FilePath, rootDirectory, options, cancellationToken);
+            }
+            else
+            {
+                var fileSystem = new FileSystem(encryptCommandContext.FilePath);
+                var rootDirectory = CreateRootDirectory(encryptCommandContext.FilePath);
+                await Encrypt(rootDirectory, fileSystem.RootFolder, options, cancellationToken);
             }
         }
         catch (CryptographicException)
         {
             throw new InvalidOperationException("An exception occured during file encryption.");
+        }
+    }
+
+
+    private async Task Encrypt(DirectoryInfo parentDirectory, FileSystem.Folder folder, EncryptionOptions options, CancellationToken cancellationToken)
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(parentDirectory.FullName, folder.Name));
+
+        foreach (var path in folder.FilePaths)
+        {
+            await EncryptFile(path, directory, options, cancellationToken);
+        }
+
+        foreach (var childFolder in folder.Folders)
+        {
+            await Encrypt(directory, childFolder, options, cancellationToken);
         }
     }
 
@@ -49,5 +70,10 @@ internal sealed class EncryptFileCommandHandler : IHandler<EncryptCommandContext
             var fileWriter = new FileWriter(path);
             await new AesEncryptor(fileWriter).Encrypt(readStream, options, cancellationToken);
         }
+    }
+
+    private static DirectoryInfo CreateRootDirectory(string path)
+    {
+        return Directory.CreateDirectory(Path.Combine(path, "cyclonenc")); ;
     }
 }

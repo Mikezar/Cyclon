@@ -21,17 +21,37 @@ internal sealed class DecryptFileCommandHandler : IHandler<DecryptCommandContext
             var secretBytes = Encoding.Unicode.GetBytes(decryptCommandContext.Passphrase);
             var (key, iv) = _keyIVGenerator.Generate(secretBytes);
             var options = new EncryptionOptions(key, iv);
-            var filePaths = FileUtilities.GetAllFilePaths(decryptCommandContext.FilePath);
-            var directory = Directory.CreateDirectory(Path.Combine(decryptCommandContext.FilePath, "cyclondec"));
 
-            foreach (var path in filePaths)
+            if (FileUtilities.IsAFile(decryptCommandContext.FilePath))
             {
-                await DecryptFile(path, directory, options, cancellationToken);
+                var rootDirectory = CreateRootDirectory(decryptCommandContext.FilePath);
+                await DecryptFile(decryptCommandContext.FilePath, rootDirectory, options, cancellationToken);
+            }
+            else
+            {
+                var fileSystem = new FileSystem(decryptCommandContext.FilePath);
+                var rootDirectory = CreateRootDirectory(decryptCommandContext.FilePath);
+                await DecryptFile(rootDirectory, fileSystem.RootFolder, options, cancellationToken);
             }
         }
         catch (CryptographicException)
         {
             throw new InvalidOperationException("An exception occured during file decryption.");
+        }
+    }
+
+    private async Task DecryptFile(DirectoryInfo parentDirectory, FileSystem.Folder folder, EncryptionOptions options, CancellationToken cancellationToken)
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(parentDirectory.FullName, folder.Name));
+
+        foreach (var path in folder.FilePaths)
+        {
+            await DecryptFile(path, directory, options, cancellationToken);
+        }
+
+        foreach (var childFolder in folder.Folders)
+        {
+            await DecryptFile(directory, childFolder, options, cancellationToken);
         }
     }
 
@@ -49,5 +69,10 @@ internal sealed class DecryptFileCommandHandler : IHandler<DecryptCommandContext
             var fileWriter = new FileWriter(path);
             await new AesDecryptor(fileWriter).Decrypt(readStream, options, cancellationToken);
         }
+    }
+
+    private static DirectoryInfo CreateRootDirectory(string path)
+    {
+        return Directory.CreateDirectory(Path.Combine(path, "cyclondec")); ;
     }
 }
