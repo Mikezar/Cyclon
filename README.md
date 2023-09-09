@@ -3,10 +3,8 @@ A small .NET tool for encrypting and decrypting files based on AES algortihm in 
 
 ## Installation
 
-Provide your **pathToPackage** after it's downloaded.
-
 ```
-dotnet tool install --global -add-source pathToPackage Cyclon
+dotnet tool install --global Cyclon
 ```
 
 ## Usage
